@@ -30,8 +30,6 @@ public class PaymentRecord {
     @Column(name = "amount", nullable = false)
     private int amount;
 
-    @Column(name = "payment_link", nullable = false, columnDefinition = "TEXT")
-    private String paymentLink;
 
     @Column(name = "status", nullable = false)
     private String status;
@@ -39,7 +37,7 @@ public class PaymentRecord {
     @Column(name = "created_at", nullable = false)
     private LocalDateTime createdAt;
 
-    public PaymentRecord(Long id, String orderId, String name, String contact, String REGNO, String GROUPCODE, int amount, String paymentLink, String status, LocalDateTime createdAt) {
+    public PaymentRecord(Long id, String orderId, String name, String contact, String REGNO, String GROUPCODE, int amount, String status, LocalDateTime createdAt) {
         this.id = id;
         this.orderId = orderId;
         this.name = name;
@@ -47,19 +45,19 @@ public class PaymentRecord {
         this.REGNO = REGNO;
         this.GROUPCODE = GROUPCODE;
         this.amount = amount;
-        this.paymentLink = paymentLink;
+
         this.status = status;
         this.createdAt = createdAt;
     }
 
-    public PaymentRecord(String orderId, String name, String contact, String REGNO, String GROUPCODE, int amount, String paymentLink, String status, LocalDateTime createdAt) {
+    public PaymentRecord(String orderId, String name, String contact, String REGNO, String GROUPCODE, int amount, String status, LocalDateTime createdAt) {
         this.orderId = orderId;
         this.name = name;
         this.contact = contact;
         this.REGNO = REGNO;
         this.GROUPCODE = GROUPCODE;
         this.amount = amount;
-        this.paymentLink = paymentLink;
+
         this.status = status;
         this.createdAt = createdAt;
     }
@@ -123,13 +121,6 @@ public class PaymentRecord {
         this.amount = amount;
     }
 
-    public String getPaymentLink() {
-        return paymentLink;
-    }
-
-    public void setPaymentLink(String paymentLink) {
-        this.paymentLink = paymentLink;
-    }
 
     public String getStatus() {
         return status;

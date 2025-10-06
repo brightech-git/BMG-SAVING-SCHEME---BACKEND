@@ -18,29 +18,35 @@ repositories {
 }
 
 dependencies {
-	implementation 'org.springframework.boot:spring-boot-starter' // ✅ Needed for SpringApplication
-	implementation 'org.springframework.boot:spring-boot-starter-jdbc'
+	// Core Spring Boot
+	implementation 'org.springframework.boot:spring-boot-starter'
 	implementation 'org.springframework.boot:spring-boot-starter-web'
-	runtimeOnly 'com.microsoft.sqlserver:mssql-jdbc'
-	testImplementation 'org.springframework.boot:spring-boot-starter-test'
-	testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
-	implementation 'org.springframework:spring-tx'
-	implementation 'org.json:json:20210307'
-	implementation 'com.razorpay:razorpay-java:1.4.4'
+	implementation 'org.springframework.boot:spring-boot-starter-jdbc'
 	implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
-	implementation 'com.microsoft.sqlserver:mssql-jdbc:11.2.0.jre8'
-	implementation 'org.springframework.boot:spring-boot-starter-thymeleaf' // If you're using Thymeleaf for the view
-	implementation 'org.springframework.boot:spring-boot-starter-validation' // If you're using validation
-	 // use your version
 	implementation 'org.springframework.boot:spring-boot-starter-security'
-	runtimeOnly 'io.jsonwebtoken:jjwt-impl:0.11.1'
-	runtimeOnly 'io.jsonwebtoken:jjwt-jackson:0.11.1'
-	implementation 'io.jsonwebtoken:jjwt-api:0.11.1'
-	implementation 'org.springframework.security:spring-security-crypto'
+	implementation 'org.springframework.boot:spring-boot-starter-validation'
+	implementation 'org.springframework.boot:spring-boot-starter-thymeleaf'
 	implementation 'org.springframework.boot:spring-boot-starter-oauth2-client'
+
+	// SQL Server Driver (for JDK 11+ including 17)
+	implementation 'com.microsoft.sqlserver:mssql-jdbc:12.8.1.jre11'
+
+	// Razorpay
+	implementation 'com.razorpay:razorpay-java:1.4.4'
+
+	// JSON Utils
+	implementation 'org.json:json:20210307'
+
+	// Firebase
 	implementation 'com.google.firebase:firebase-admin:9.5.0'
 
-	// Lombok (for @Slf4j and others)
+	// JWT (latest stable)
+	implementation 'io.jsonwebtoken:jjwt-api:0.11.5'
+	runtimeOnly 'io.jsonwebtoken:jjwt-impl:0.11.5'
+	runtimeOnly 'io.jsonwebtoken:jjwt-jackson:0.11.5'
+	implementation 'org.springframework.security:spring-security-crypto'
+
+	// Lombok
 	compileOnly 'org.projectlombok:lombok:1.18.34'
 	annotationProcessor 'org.projectlombok:lombok:1.18.34'
 	testCompileOnly 'org.projectlombok:lombok:1.18.34'
@@ -49,13 +55,12 @@ dependencies {
 	// Tests
 	testImplementation 'org.springframework.boot:spring-boot-starter-test'
 	testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
-
 }
-
 
 tasks.named('test') {
 	useJUnitPlatform()
 }
+
 springBoot {
 	mainClass = 'com.example.VTM.VtmApplication'
 }

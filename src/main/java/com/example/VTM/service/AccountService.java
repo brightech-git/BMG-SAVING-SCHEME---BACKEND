@@ -162,7 +162,7 @@ public class AccountService {
 //	}
 
 	public Map<String, Object> getRateOfGoldAndSliver() {
-		String sql = "select * from [VJCsavings]..RateMast where rateid in (select max(rateid) from [VJCsavings]..RateMast) ";
+		String sql = "select * from [BMGsavings]..RateMast where rateid in (select max(rateid) from [BMGsavings]..RateMast) ";
 		return firstJdbcTemplate.queryForObject(sql, (rs, rowNum) -> {
 			Map<String, Object> map = new HashMap<>();
 			map.put("Rate", rs.getFloat("Rate"));
@@ -176,7 +176,7 @@ public class AccountService {
 		if(snoCreate){
 			return insertEntry(groupCode, regNo,  rDate,  amount,  modePay,
 					accCode,  updateTime,  installment , userID,
-					executeGetSnoScheme("SCHEMECOLLECT", "VJCSH0708"));
+					executeGetSnoScheme("SCHEMECOLLECT", "BMGSH0708"));
 		}
 		else {
 			return null;
@@ -313,9 +313,7 @@ public class AccountService {
 	}
 
 	public List<Map<String, Object>> getTranType() {
-		String sql = "SELECT NAME, CARDTYPE, ACCOUNT FROM CREDITCARD WHERE ACTIVE = 'Y'";
-
-		// Fetch and return only active credit cards
+		String sql = "SELECT NAME, CARDTYPE, ACCOUNT FROM CREDITCARD where Active = 'Y'";
 		return firstJdbcTemplate.queryForList(sql);
 	}
 

@@ -15,6 +15,7 @@ import javax.sql.DataSource;
 @EnableTransactionManagement
 public class DataSourceConfig {
 
+    // ===== Primary DataSource & JdbcTemplate =====
     @Bean(name = "firstDataSource")
     @Primary
     @ConfigurationProperties(prefix = "spring.datasource.first")
@@ -22,22 +23,17 @@ public class DataSourceConfig {
         return DataSourceBuilder.create().build();
     }
 
+    @Bean(name = "firstJdbcTemplate")
+    @Primary
+    public JdbcTemplate firstJdbcTemplate(@Qualifier("firstDataSource") DataSource dataSource) {
+        return new JdbcTemplate(dataSource);
+    }
+
+    // ===== Second DataSource & JdbcTemplate =====
     @Bean(name = "secondDataSource")
     @ConfigurationProperties(prefix = "spring.datasource.second")
     public DataSource secondDataSource() {
         return DataSourceBuilder.create().build();
-    }
-
-    @Bean(name = "thirdDataSource")
-    @ConfigurationProperties(prefix = "spring.datasource.third")
-    public DataSource thirdDataSource() {
-        return DataSourceBuilder.create().build();
-    }
-
-
-    @Bean(name = "firstJdbcTemplate")
-    public JdbcTemplate firstJdbcTemplate(@Qualifier("firstDataSource") DataSource dataSource) {
-        return new JdbcTemplate(dataSource);
     }
 
     @Bean(name = "secondJdbcTemplate")
@@ -45,8 +41,27 @@ public class DataSourceConfig {
         return new JdbcTemplate(dataSource);
     }
 
+    // ===== Third DataSource & JdbcTemplate =====
+    @Bean(name = "thirdDataSource")
+    @ConfigurationProperties(prefix = "spring.datasource.third")
+    public DataSource thirdDataSource() {
+        return DataSourceBuilder.create().build();
+    }
+
     @Bean(name = "thirdJdbcTemplate")
     public JdbcTemplate thirdJdbcTemplate(@Qualifier("thirdDataSource") DataSource dataSource) {
+        return new JdbcTemplate(dataSource);
+    }
+
+    // ===== Fourth DataSource & JdbcTemplate =====
+    @Bean(name = "fourthDataSource")
+    @ConfigurationProperties(prefix = "spring.datasource.fourth")
+    public DataSource fourthDataSource() {
+        return DataSourceBuilder.create().build();
+    }
+
+    @Bean(name = "fourthJdbcTemplate")
+    public JdbcTemplate fourthJdbcTemplate(@Qualifier("fourthDataSource") DataSource dataSource) {
         return new JdbcTemplate(dataSource);
     }
 }

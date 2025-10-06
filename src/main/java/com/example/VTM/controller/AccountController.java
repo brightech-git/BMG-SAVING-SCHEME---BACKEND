@@ -41,11 +41,12 @@ public class AccountController {
     			data.getModePay(), data.getAccCode(), data.getUpdateTime(),data.getInstallment()
     			,data.getUserID(),true);
     }
-    
+
     @GetMapping("/getTranType")
-    public List<Map<String,Object>> getTranType(){
-    	return accountService.getTranType();    	
+    public List<Map<String,Object>> getTranType() {
+        return accountService.getTranType();
     }
+
 
     @GetMapping("/todayrate")
     public Map<String,Object> getRateOfGoldAndSliver(){

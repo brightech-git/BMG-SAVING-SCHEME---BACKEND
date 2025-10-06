@@ -51,7 +51,7 @@ public class NewMemberService{
 		}
 
 		public  String createNewMember(NMData nmData,boolean flag){
-			String sno= accountService.executeGetSnoScheme("SCHEMECOLLECT", "VJCSH0708");
+			String sno= accountService.executeGetSnoScheme("SCHEMECOLLECT", "BMGSH0708");
 			System.out.println("Sno number - "+sno);
 			return createNewMember(nmData,sno);
 //			return "Ntg";

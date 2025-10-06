@@ -27,14 +27,16 @@ import java.util.*;
 public class AccountService {
 	private final JdbcTemplate firstJdbcTemplate;
 	private final JdbcTemplate secondJdbcTemplate;
+	private final JdbcTemplate fourthJdbcTemplate;
 	private final CustomQueryUtils customQueryUtils;
 
 	@Autowired
 	public AccountService(@Qualifier("firstJdbcTemplate") JdbcTemplate firstJdbcTemplate,
-			@Qualifier("secondJdbcTemplate") JdbcTemplate secondJdbcTemplate,@Qualifier("customQueryUtils") CustomQueryUtils customQueryUtils) {
+                          @Qualifier("secondJdbcTemplate") JdbcTemplate secondJdbcTemplate, @Qualifier("fourthJdbcTemplate")JdbcTemplate fourthJdbcTemplate, @Qualifier("customQueryUtils") CustomQueryUtils customQueryUtils) {
 		this.firstJdbcTemplate = firstJdbcTemplate;
 		this.secondJdbcTemplate = secondJdbcTemplate;
-		this.customQueryUtils=customQueryUtils;
+        this.fourthJdbcTemplate = fourthJdbcTemplate;
+        this.customQueryUtils=customQueryUtils;
 	}
 
 
@@ -48,7 +50,7 @@ public class AccountService {
 		@SuppressWarnings("deprecation")
 		PersonalInfo personalInfo = firstJdbcTemplate.queryForObject(sql1, new Object[] { regNo, groupCode },
 				new BeanPropertyRowMapper<>(PersonalInfo.class));
-	
+
 		//PaymentHistoryList
 		String sql2 = "SELECT RECEIPTNO,AMOUNT,INSTALLMENT,UPDATETIME FROM SCHEMETRAN  "
 				+ "WHERE REGNO = ? AND GROUPCODE = ? " + "ORDER BY INSTALLMENT";
@@ -64,7 +66,7 @@ public class AccountService {
 		@SuppressWarnings("deprecation")
 		SchemeSummary schemeSummary = firstJdbcTemplate.queryForObject(sql3_section1, new Object[] { groupCode,regNo },
 				new BeanPropertyRowMapper<>(SchemeSummary.class));
-		
+
 		//SchemaSummaryTransBalance
 		String sql3_section2 = "SELECT " + "	SUM(AMOUNT) AMTRECD , " + "	COUNT(INSTALLMENT) INSPaid  " + " FROM "
 				+ "	SCHEMETRAN " + " WHERE " + "	REGNO = ?  " + "	and GROUPCODE = ?  " + " GROUP BY " + "	REGNO, "
@@ -72,7 +74,7 @@ public class AccountService {
 		@SuppressWarnings("deprecation")
 		SchemaSummaryTransBalance schemaSummaryTransBalance = secondJdbcTemplate.queryForObject(sql3_section2,
 				new Object[] { regNo, groupCode }, new BeanPropertyRowMapper<>(SchemaSummaryTransBalance.class));
-		
+
 		// SchemeClosedSummary
 		String sql4="SELECT sm.DOCLOSE,sm.BILLNO,u.USERNAME,e.EMPNAME FROM SCHEMEMAST sm "
 				+ "LEFT JOIN USERMASTER u on u.USERID =sm.USERID "
@@ -81,31 +83,31 @@ public class AccountService {
 		@SuppressWarnings("deprecation")
 		SchemeClosedSummary schemeClosedSummary  = firstJdbcTemplate.queryForObject(sql4,
 				new Object[] {groupCode, regNo  }, new BeanPropertyRowMapper<>(SchemeClosedSummary.class));
-		
+
 		//Last Paid Date
 		String sql5="SELECT MAX(UPDATETIME) FROM SCHEMETRAN "
 				+ "WHERE REGNO = ? AND GROUPCODE = ? ";
 		@SuppressWarnings("deprecation")
-		String lastPaidDate = secondJdbcTemplate.queryForObject(sql5, new Object[]{regNo, groupCode}, String.class);		
-		
+		String lastPaidDate = secondJdbcTemplate.queryForObject(sql5, new Object[]{regNo, groupCode}, String.class);
+
 		//Last Paid Date			
-		if(schemeSummary.getFixedIns().equals("Y")) {			
+		if(schemeSummary.getFixedIns().equals("Y")) {
 			String getfixedAmount="SELECT TOP 1 Amount FROM SCHEMETRAN WHERE GROUPCODE= ? AND regno=? ";
 			@SuppressWarnings("deprecation")
 			Optional<String> fixedAmount = Optional.ofNullable(secondJdbcTemplate.queryForObject
 								(getfixedAmount, new Object[]{groupCode ,regNo}, String.class));
 			if(fixedAmount.equals(null))
-				ppData.setAmount(null);				
+				ppData.setAmount(null);
 			else
 				ppData.setAmount(fixedAmount.get());
 		}
-		
+
 		schemeSummary.setSchemaSummaryTransBalance(schemaSummaryTransBalance);
 		ppData.setPersonalInfo(personalInfo);
 		ppData.setSchemeClosedSummary(schemeClosedSummary);
 		ppData.setPaymentHistoryList(paymentHistoryList);
 		ppData.setSchemeSummary(schemeSummary);
-		ppData.setLastPaidDate(lastPaidDate);				
+		ppData.setLastPaidDate(lastPaidDate);
 		return ppData;
 	}
 
@@ -129,47 +131,47 @@ public class AccountService {
 
 
 
-//	public Map<String, Object> getRateOFGoldAndSliver() {
-//		String sql = "  SELECT METALID, PURITY, PRATE \n" +
-//				"                FROM RATEMAST \n" +
-//				"                WHERE RATEGROUP = (SELECT MAX(RATEGROUP)\n" +
-//				"                                   FROM RATEMAST) \n" +
-//				"                AND ((METALID = 'G' AND PURITY = '91.60') OR \n" +
-//				"                   (METALID = 'P' AND PURITY = '95.00') OR \n" +
-//				"                    (METALID = 'S' AND PURITY = '91.60'))";
-//
-//		List<Map<String, Object>> results = firstJdbcTemplate.query(sql, (rs, rowNum) -> {
-//			Map<String, Object> row = new HashMap<>();
-//			row.put("METALID", rs.getString("METALID"));
-//			row.put("PRATE", rs.getFloat("PRATE"));
-//			return row;
-//		});
-//
-//		Map<String, Object> finalResult = new HashMap<>();
-//
-//		for (Map<String, Object> row : results) {
-//			String metalId = (String) row.get("METALID");
-//			float rate = (float) row.get("PRATE");
-//
-//			if ("G".equals(metalId)) {
-//				finalResult.put("GOLDRATE", rate);
-//			} else if ("S".equals(metalId)) {
-//				finalResult.put("SILVERRATE", rate);
-//			}
-//		}
-//
-//		return finalResult;
-//	}
+	public Map<String, Object> getRateOFGoldAndSliver() {
+		String sql = "  SELECT METALID, PURITY, PRATE \n" +
+				"                FROM RATEMAST \n" +
+				"                WHERE RATEGROUP = (SELECT MAX(RATEGROUP)\n" +
+				"                                   FROM RATEMAST) \n" +
+				"                AND ((METALID = 'G' AND PURITY = '91.60') OR \n" +
+				"                   (METALID = 'P' AND PURITY = '95.00') OR \n" +
+				"                    (METALID = 'S' AND PURITY = '91.60'))";
 
-	public Map<String, Object> getRateOfGoldAndSliver() {
-		String sql = "select * from [BMGsavings]..RateMast where rateid in (select max(rateid) from [BMGsavings]..RateMast) ";
-		return firstJdbcTemplate.queryForObject(sql, (rs, rowNum) -> {
-			Map<String, Object> map = new HashMap<>();
-			map.put("Rate", rs.getFloat("Rate"));
-			map.put("SILVERRATE", rs.getFloat("SILVERRATE"));
-			return map;
+		List<Map<String, Object>> results = firstJdbcTemplate.query(sql, (rs, rowNum) -> {
+			Map<String, Object> row = new HashMap<>();
+			row.put("METALID", rs.getString("METALID"));
+			row.put("PRATE", rs.getFloat("PRATE"));
+			return row;
 		});
+
+		Map<String, Object> finalResult = new HashMap<>();
+
+		for (Map<String, Object> row : results) {
+			String metalId = (String) row.get("METALID");
+			float rate = (float) row.get("PRATE");
+
+			if ("G".equals(metalId)) {
+				finalResult.put("GOLDRATE", rate);
+			} else if ("S".equals(metalId)) {
+				finalResult.put("SILVERRATE", rate);
+			}
+		}
+
+		return finalResult;
 	}
+
+//	public Map<String, Object> getRateOfGoldAndSliver() {
+//		String sql = "select * from [BMGsavings]..RateMast where rateid in (select max(rateid) from [BMGsavings]..RateMast) ";
+//		return firstJdbcTemplate.queryForObject(sql, (rs, rowNum) -> {
+//			Map<String, Object> map = new HashMap<>();
+//			map.put("Rate", rs.getFloat("Rate"));
+//			map.put("SILVERRATE", rs.getFloat("SILVERRATE"));
+//			return map;
+//		});
+//	}
 
 	public String insertEntry(String groupCode, String regNo, String rDate, String amount, String modePay,
 							  String accCode, String updateTime, String installment ,String userID,boolean snoCreate){
@@ -335,4 +337,39 @@ public class AccountService {
 	}
 
 
-}
+	public Map<String, Object> getRateOfGoldAndSliver() {
+		{
+			String sql = "  SELECT METALID, PURITY, PRATE \n" +
+					"                FROM RATEMAST \n" +
+					"                WHERE RATEGROUP = (SELECT MAX(RATEGROUP)\n" +
+					"                                   FROM RATEMAST) \n" +
+					"                AND ((METALID = 'G' AND PURITY = '91.60') OR \n" +
+					"                   (METALID = 'P' AND PURITY = '95.00') OR \n" +
+					"                    (METALID = 'S' AND PURITY = '91.60'))";
+
+			List<Map<String, Object>> results = fourthJdbcTemplate.query(sql, (rs, rowNum) -> {
+				Map<String, Object> row = new HashMap<>();
+				row.put("METALID", rs.getString("METALID"));
+				row.put("PRATE", rs.getFloat("PRATE"));
+				return row;
+			});
+
+			Map<String, Object> finalResult = new HashMap<>();
+
+			for (Map<String, Object> row : results) {
+				String metalId = (String) row.get("METALID");
+				float rate = (float) row.get("PRATE");
+
+				if ("G".equals(metalId)) {
+					finalResult.put("GOLDRATE", rate);
+				} else if ("S".equals(metalId)) {
+					finalResult.put("SILVERRATE", rate);
+				}
+			}
+
+			return finalResult;
+		}
+
+	}
+
+	}

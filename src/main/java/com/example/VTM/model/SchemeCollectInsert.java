@@ -1,14 +1,14 @@
 package com.example.VTM.model;
 
 public class SchemeCollectInsert {
-	private String groupCode;
+    private String groupCode;
     private String regNo;
     private String rDate;
     private String amount;
     private String modePay;
     private String accCode;
-    private String updateTime;    
-    private String installment;      
+    private String updateTime;
+    private String installment;
     private String weight;
     private String sWeight;
     private String userID;
@@ -70,46 +70,46 @@ public class SchemeCollectInsert {
         this.updateTime = updateTime;
     }
 
-	public String getInstallment() {
-		return installment;
-	}
+    public String getInstallment() {
+        return installment;
+    }
 
-	public void setInstallment(String installment) {
-		this.installment = installment;
-	}
+    public void setInstallment(String installment) {
+        this.installment = installment;
+    }
 
-	public String getrDate() {
-		return rDate;
-	}
+    public String getrDate() {
+        return rDate;
+    }
 
-	public void setrDate(String rDate) {
-		this.rDate = rDate;
-	}
+    public void setrDate(String rDate) {
+        this.rDate = rDate;
+    }
 
-	public String getWeight() {
-		return weight;
-	}
+    public String getWeight() {
+        return weight;
+    }
 
-	public void setWeight(String weight) {
-		this.weight = weight;
-	}
+    public void setWeight(String weight) {
+        this.weight = weight;
+    }
 
-	public String getsWeight() {
-		return sWeight;
-	}
+    public String getsWeight() {
+        return sWeight;
+    }
 
-	public void setsWeight(String sWeight) {
-		this.sWeight = sWeight;
-	}
+    public void setsWeight(String sWeight) {
+        this.sWeight = sWeight;
+    }
 
-	public String getUserID() {
-		return userID;
-	}
+    public String getUserID() {
+        return userID;
+    }
 
-	public void setUserID(String userID) {
-		this.userID = userID;
-	}
-	
+    public void setUserID(String userID) {
+        this.userID = userID;
+    }
+
 
 
 }

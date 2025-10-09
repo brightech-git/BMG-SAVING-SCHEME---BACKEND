@@ -35,11 +35,17 @@ public class AccountController {
     	return accountService.getRegNoGroupCodeByPhoneNo(phoneNo);
     }
 
+//    @PostMapping("/insert")
+//    public String insertEntry(@RequestBody SchemeCollectInsert data ) {
+//    	return accountService.insertEntry(data.getGroupCode(), data.getRegNo(), data.getRDate(), data.getAmount(),
+//    			data.getModePay(), data.getAcCode(), data.getUpdateTime(), data.getUserID(),true);
+//    }
+
     @PostMapping("/insert")
     public String insertEntry(@RequestBody SchemeCollectInsert data ) {
-    	return accountService.insertEntry(data.getGroupCode(), data.getRegNo(), data.getRDate(), data.getAmount(), 
-    			data.getModePay(), data.getAccCode(), data.getUpdateTime(),data.getInstallment()
-    			,data.getUserID(),true);
+        return accountService.insertEntry(data.getGroupCode(), data.getRegNo(), data.getRDate(), data.getAmount(),
+                data.getModePay(), data.getAccCode(), data.getUpdateTime(),data.getInstallment()
+                ,data.getUserID(),true);
     }
 
     @GetMapping("/getTranType")

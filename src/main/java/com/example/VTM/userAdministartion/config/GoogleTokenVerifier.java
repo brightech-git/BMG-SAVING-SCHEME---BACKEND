@@ -5,11 +5,17 @@ import com.google.api.client.googleapis.auth.oauth2.GoogleIdTokenVerifier;
 import com.google.api.client.googleapis.javanet.GoogleNetHttpTransport;
 import com.google.api.client.json.jackson2.JacksonFactory;
 
-import java.util.Collections;
+import java.util.Arrays;
+import java.util.List;
 
 public class GoogleTokenVerifier {
 
-    private static final String CLIENT_ID = "836611490588-acls1466id475nq0c8bunen9e0b5ifdt.apps.googleusercontent.com";
+    // Add all your client IDs here
+    private static final List<String> CLIENT_IDS = Arrays.asList(
+            "657047091285-57kkictc0pkfjldtf0u133m82huit6rg.apps.googleusercontent.com", // iOS
+            "657047091285-hetgcscq8hvli59d0c6oqvg9aoat8850.apps.googleusercontent.com", // Web
+            "657047091285-blcbc2l96oqb7dndntifoggq5ovluel3.apps.googleusercontent.com"  // Android
+    );
 
     public static GoogleIdToken.Payload verifyToken(String idTokenString) throws Exception {
         if (idTokenString == null || idTokenString.isEmpty()) {
@@ -20,15 +26,13 @@ public class GoogleTokenVerifier {
                 GoogleNetHttpTransport.newTrustedTransport(),
                 JacksonFactory.getDefaultInstance()
         )
-                .setAudience(Collections.singletonList(CLIENT_ID))
+                .setAudience(CLIENT_IDS)  // verify against all clients
                 .build();
 
         GoogleIdToken idToken = verifier.verify(idTokenString);
         if (idToken != null) {
-            // Debug log the token
             System.out.println("Verified Google ID Token: " + idToken);
-
-            return idToken.getPayload(); // return payload after logging
+            return idToken.getPayload();
         } else {
             throw new SecurityException("Invalid Google ID token");
         }

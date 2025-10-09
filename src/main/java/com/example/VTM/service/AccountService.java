@@ -12,6 +12,7 @@ import com.example.VTM.service.utils.CustomQueryUtils;
 import jakarta.transaction.Transactional;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.BeanPropertyRowMapper;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.SqlOutParameter;
@@ -20,6 +21,7 @@ import org.springframework.jdbc.core.simple.SimpleJdbcCall;
 import org.springframework.stereotype.Service;
 
 
+import java.sql.Timestamp;
 import java.sql.Types;
 import java.util.*;
 
@@ -173,120 +175,349 @@ public class AccountService {
 //		});
 //	}
 
+//	public String insertEntry(String groupCode, String regNo, String rDate, String amount, String modePay,
+//							  String accCode, String updateTime, String installment, String userID, boolean snoCreate) {
+//
+//		System.out.println("=== insertEntry START ===");
+//		System.out.println("groupCode=" + groupCode + ", regNo=" + regNo + ", amount=" + amount);
+//
+//		if (!snoCreate) {
+//			System.out.println("SNO creation disabled, returning null");
+//			return null;
+//		}
+//
+//		// Step 1: Generate SNO
+//		String sno = executeGetSnoScheme("SCHEMECOLLECT", "BMGSH0708");
+//		System.out.println("Generated SNO: " + sno);
+//
+//		if (sno == null || sno.isEmpty()) {
+//			System.out.println("Error: SNO generation failed");
+//			return "Error: SNO generation failed";
+//		}
+//
+//		// Step 2: Insert into DB safely
+//		try {
+//			// Example SQL, replace with your actual insert or select query
+//			String checkSql = "SELECT COUNT(*) FROM SCHEMECOLLECT WHERE SNO = ?";
+//			Integer count = secondJdbcTemplate.queryForObject(checkSql, new Object[]{sno}, Integer.class);
+//
+//			if (count == null || count == 0) {
+//				System.out.println("No existing record found for SNO: " + sno + ", proceeding to insert.");
+//				// Your insert statement
+//				String insertSql = "INSERT INTO SCHEMECOLLECT (SNO, GROUPCODE, REGNO, RDATE, AMOUNT, MODEPAY, ACCCODE, UPDATETIME, INSTALLMENT, USERID) " +
+//						"VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+//				int rows = secondJdbcTemplate.update(insertSql, sno, groupCode, regNo, rDate, amount, modePay, accCode, updateTime, installment, userID);
+//				System.out.println("Rows inserted: " + rows);
+//			} else {
+//				System.out.println("Record already exists for SNO: " + sno);
+//				return "Record already exists for SNO: " + sno;
+//			}
+//
+//			return sno; // return the generated SNO after successful insert
+//
+//		} catch (Exception e) {
+//			e.printStackTrace();
+//			return "Error inserting record: " + e.getMessage();
+//		}
+//	}
+
+
+
 	public String insertEntry(String groupCode, String regNo, String rDate, String amount, String modePay,
-							  String accCode, String updateTime, String installment ,String userID,boolean snoCreate){
-		if(snoCreate){
-			return insertEntry(groupCode, regNo,  rDate,  amount,  modePay,
-					accCode,  updateTime,  installment , userID,
-					executeGetSnoScheme("SCHEMECOLLECT", "BMGSH0708"));
-		}
-		else {
+							  String accCode, String updateTime, String installment, String userID, boolean snoCreate) {
+
+		System.out.println("=== insertEntry START ===");
+		System.out.println("Parameters received -> groupCode: " + groupCode + ", regNo: " + regNo
+				+ ", rDate: " + rDate + ", amount: " + amount + ", modePay: " + modePay
+				+ ", accCode: " + accCode + ", updateTime: " + updateTime
+				+ ", installment: " + installment + ", userID: " + userID
+				+ ", snoCreate: " + snoCreate);
+
+		if (!snoCreate) {
+			System.out.println("SNO creation is disabled. Exiting method.");
 			return null;
 		}
-	}
 
+		// Step 1: Generate SNO
+		String sno = executeGetSnoScheme("SCHEMECOLLECT", "BMGSH0708");
+		System.out.println("Generated SNO: " + sno);
 
-	public String insertEntry(String groupCode, String regNo, String rDate, String amount, String modePay,
-			String accCode, String updateTime, String installment ,String userID,String sno) {
-
-		String receiptNoQuery = "SELECT StartReceiptNo FROM Company ";
-
-		String refNoQuery = "SELECT ctlText FROM  SOFTCONTROL  WHERE CTLID = 'ENTREFNO' ";
-
-		String insertQuerySchemeCollect = "INSERT INTO SCHEMECOLLECT (GROUPCODE, REGNO, RECEIPTNO, RDATE, AMOUNT, MODEPAY, ACCODE, "
-				+ "ENTREFNO, CANCEL, SYSTEMID, UPDATETIME, USERID, BOOKNO, COSTID, APPVER, TRANMODE, SC_ID, SNO) "
-				+ "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
-
-		String insertQuerySchemeTran = "INSERT INTO SCHEMETRAN " + "(GROUPCODE," + " REGNO," + " AMOUNT, " + "WEIGHT, "
-				+ "SWEIGHT, " + "RATE, " + "SRATE, " + "RECEIPTNO, " + "RDATE, " + "CANCEL, " + "SYSTEMID, "
-				+ "INSTALLMENT, " + "EMPID, " + "REMARKS, " + "ENTREFNO, " + "CPERSON, " + "USERID, " + "UPDATETIME, "
-				+ "BOOKNO, " + "COSTID, " + "Msno, " + "BONUSAMount, " + "BonusWeight, " + "APPVER, " + "ST_ID, "
-				+ "SNO ," + "ACTUALDATE, " + "TAX, " + "SGST, " + "CGST, " + "IGST, " + "INSAMOUNT " + ") "
-				+ "VALUES (?, ?, ? ,? ,? ,? ,? ,? ,? ,? ,? ,? ,? ,? ,? ,? ,? ,? ,? ,? ,? ,? ,? ,? ,? ,? "
-				+ ",?  ,?  ,?  ,?  ,?  ,?  )";
-
-		String wtCalculate ="SELECT s.WeightLedger FROM SCHEMEMAST sm "
-				+ "LEFT JOIN Scheme s on s.SchemeId =sm.SCHEMEID "
-				+ "WHERE sm.GROUPCODE = ? and  sm.REGNO = ? ";
-
-		@SuppressWarnings("deprecation")
-		String wtFlag =firstJdbcTemplate.queryForObject(wtCalculate,new Object[]{groupCode, regNo},String.class );
-
-		Map<String, Object> result = firstJdbcTemplate.queryForObject("SELECT Rate, SILVERRATE FROM RateMast "
-				+ "WHERE rateid = (SELECT MAX(rateid) FROM RateMast)", (rs, rowNum) -> {
-		    Map<String, Object> map = new HashMap<>();
-		    String rate = Float.toString(rs.getFloat("Rate"));
-		    String sRate = Float.toString(rs.getFloat("SILVERRATE"));
-		    map.put("Rate", rate);
-		    map.put("SILVERRATE", sRate);
-		    return map;
-		});
-
-		String receiptNo = firstJdbcTemplate.queryForObject(receiptNoQuery, String.class);
-		String entRefNo = firstJdbcTemplate.queryForObject(refNoQuery, String.class);;
-		String cancel = "";
-		String systemId = "";
-		String bookNo = "0";
-		String costId = "";
-		String appVer = "19.12.10.1";
-		String tranMode = "D";
-		String scId = entRefNo;
-		String snoSchemeCollect = sno;
-		String rate = (String) result.get("Rate");
-		String sRate = (String) result.get("SILVERRATE");
-		String empId = "1";
-		String remark = "";
-		String cPerson = "0";
-		String msno = "0";
-		String BONUSAMount = "0";
-		String BonusWeight = "0";
-		String ActualDate = " ";
-		String tax = "0";
-		String sgst = "0";
-		String cgst = "0";
-		String igst = "0";
-		String insAmount = "0";
-		String weight="0";
-		String sWeight="0";
-
-		if(wtFlag.equals("Y")) {
-			float xrate = Float.parseFloat(result.get("Rate").toString());
-		    float silverRate = Float.parseFloat(result.get("SILVERRATE").toString());
-		    int parsedAmount = Integer.parseInt(amount);
-		    weight = String.format("%.3f", (parsedAmount / xrate));
-		    sWeight = String.format("%.3f", (parsedAmount /silverRate ));
+		if (sno == null || sno.isEmpty()) {
+			System.out.println("Error: SNO generation failed.");
+			return "Error: SNO generation failed";
 		}
 
 		try {
-			secondJdbcTemplate.update(insertQuerySchemeCollect, groupCode, regNo, receiptNo, rDate, amount, modePay,
-					accCode, entRefNo, cancel, systemId, updateTime, userID, bookNo, costId, appVer, tranMode, scId,
-					snoSchemeCollect);
+			// Step 2: Check if SNO already exists
+			String checkSql = "SELECT COUNT(*) FROM SCHEMECOLLECT WHERE SNO = ?";
+			Integer count = secondJdbcTemplate.queryForObject(checkSql, new Object[]{sno}, Integer.class);
+			System.out.println("Existing record count for SNO " + sno + ": " + count);
 
-			secondJdbcTemplate.update(insertQuerySchemeTran, groupCode, regNo, amount, weight, sWeight, rate, sRate,
-					receiptNo, rDate, cancel, systemId, installment, empId, remark, entRefNo, cPerson, userID,
-					updateTime, bookNo, costId, msno, BONUSAMount, BonusWeight, appVer, scId, snoSchemeCollect,
-					ActualDate, tax, sgst, cgst, igst, insAmount);
+			if (count != null && count > 0) {
+				System.out.println("Record already exists for SNO: " + sno);
+				return "Record already exists for SNO: " + sno;
+			}
 
-			firstJdbcTemplate.update(
-			    "UPDATE SOFTCONTROL SET CTLTEXT = ? WHERE CTLID = 'ENTREFNO' AND CTLTEXT = ?",
-			    Integer.parseInt(entRefNo) + 1,
-			    Integer.parseInt(entRefNo)
-			);
+			// Step 3: Insert new record
+			String insertSql = "INSERT INTO SCHEMECOLLECT " +
+					"(SNO, GROUPCODE, REGNO, RDATE, AMOUNT, MODEPAY, ACCODE, UPDATETIME, INSTALLMENT, USERID) " +
+					"VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+			int rows = secondJdbcTemplate.update(insertSql, sno, groupCode, regNo, rDate, amount, modePay, accCode, updateTime, installment, userID);
 
-			firstJdbcTemplate.update(
-			    "UPDATE Company SET StartReceiptNo = ? WHERE StartReceiptNo = ?",
-			    Integer.parseInt(receiptNo) +1,
-			    Integer.parseInt(receiptNo)
-			);
-			System.out.println("A new record was inserted successfully!");
-			return "Success";
+			System.out.println("Insert executed. Rows inserted: " + rows);
+
+			return sno; // return the generated SNO after successful insert
+
 		} catch (Exception e) {
-			System.err.println("An error occurred while inserting the record: " + e.getMessage());
 			e.printStackTrace();
-			return "Error";
+			System.out.println("Error inserting record: " + e.getMessage());
+			return "Error inserting record: " + e.getMessage();
 		}
-
 	}
+
+
+	public String insertEntry(String groupCode, String regNo, String rDate, String amount, String modePay,
+							  String accCode, String updateTime, String installment, String userID, String sno) {
+
+		System.out.println("=== insertEntry() START ===");
+		System.out.printf("Params -> groupCode=%s, regNo=%s, rDate=%s, amount=%s, modePay=%s, accCode=%s, userID=%s, sno=%s%n",
+				groupCode, regNo, rDate, amount, modePay, accCode, userID, sno);
+
+		String receiptNoQuery = "SELECT StartReceiptNo FROM Company";
+		String refNoQuery = "SELECT CTLTEXT FROM SOFTCONTROL WHERE CTLID = 'ENTREFNO'";
+		String wtCalculate = "SELECT s.WeightLedger FROM SCHEMEMAST sm " +
+				"LEFT JOIN Scheme s ON s.SchemeId = sm.SCHEMEID " +
+				"WHERE sm.GROUPCODE = ? AND sm.REGNO = ?";
+
+		String insertQuerySchemeCollect = "INSERT INTO SCHEMECOLLECT " +
+				"(GROUPCODE, REGNO, RECEIPTNO, RDATE, AMOUNT, MODEPAY, ACCODE, ENTREFNO, CANCEL, SYSTEMID, " +
+				"UPDATETIME, USERID, BOOKNO, COSTID, APPVER, TRANMODE, SC_ID, SNO) " +
+				"VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+
+		String insertQuerySchemeTran = "INSERT INTO SCHEMETRAN " +
+				"(GROUPCODE, REGNO, AMOUNT, WEIGHT, SWEIGHT, RATE, SRATE, RECEIPTNO, RDATE, CANCEL, " +
+				"SYSTEMID, INSTALLMENT, EMPID, REMARKS, ENTREFNO, CPERSON, USERID, UPDATETIME, BOOKNO, COSTID, " +
+				"Msno, BONUSAMount, BonusWeight, APPVER, ST_ID, SNO, ACTUALDATE, TAX, SGST, CGST, IGST, INSAMOUNT) " +
+				"VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+
+
+		try {
+			// Step 1: Fetch Receipt No
+			String receiptNo = firstJdbcTemplate.queryForObject(receiptNoQuery, String.class);
+
+			// Step 2: Fetch ENTREFNO
+			String entRefNo = firstJdbcTemplate.queryForObject(refNoQuery, String.class);
+
+			if (receiptNo == null || entRefNo == null) {
+				return "Error: Missing receipt or ENTREFNO";
+			}
+
+			// Step 3: Weight Ledger
+			String wtFlag = "N";
+			List<String> wtList = firstJdbcTemplate.queryForList(wtCalculate, new Object[]{groupCode, regNo}, String.class);
+			if (!wtList.isEmpty()) wtFlag = wtList.get(0);
+
+			// Step 4: Fetch gold & silver rates
+			String sql = "SELECT METALID, PURITY, PRATE FROM RATEMAST " +
+					"WHERE RATEGROUP = (SELECT MAX(RATEGROUP) FROM RATEMAST) " +
+					"AND ((METALID = 'G' AND PURITY = '91.60') OR " +
+					"     (METALID = 'P' AND PURITY = '95.00') OR " +
+					"     (METALID = 'S' AND PURITY = '91.60'))";
+
+			Map<String, Float> rateMap = new HashMap<>();
+			List<Map<String, Object>> results = fourthJdbcTemplate.query(sql, (rs, rowNum) -> {
+				Map<String, Object> row = new HashMap<>();
+				row.put("METALID", rs.getString("METALID"));
+				row.put("PRATE", rs.getFloat("PRATE"));
+				return row;
+			});
+
+			for (Map<String, Object> row : results) {
+				String metalId = (String) row.get("METALID");
+				float rate = (float) row.get("PRATE");
+				if ("G".equals(metalId)) rateMap.put("GOLDRATE", rate);
+				else if ("S".equals(metalId)) rateMap.put("SILVERRATE", rate);
+			}
+
+			float xRate = rateMap.getOrDefault("GOLDRATE", 0f);
+			float silverRate = rateMap.getOrDefault("SILVERRATE", 0f);
+
+			String weight = "0", sWeight = "0";
+			if ("Y".equalsIgnoreCase(wtFlag)) {
+				int amt = Integer.parseInt(amount);
+				weight = String.format("%.3f", amt / xRate);
+				sWeight = String.format("%.3f", amt / silverRate);
+			}
+
+			System.out.println("Rates -> GoldRate=" + xRate + ", SilverRate=" + silverRate + ", WeightFlag=" + wtFlag);
+			System.out.println("Calculated weights -> G=" + weight + ", S=" + sWeight);
+
+			// === Constants ===
+			String cancel = "", systemId = "", bookNo = "0", costId = "";
+			String appVer = "19.12.10.1", tranMode = "D", scId = entRefNo, remark = "";
+			int empIdInt = 1;
+			int cPersonInt = 0;
+			int msnoInt = 0;
+			double bonusAmount = 0, bonusWeight = 0, tax = 0, sgst = 0, cgst = 0, igst = 0, insAmount = 0;
+			String actualDate = " ";
+
+			// Step 5: Insert SCHEMECOLLECT
+			int rows1 = secondJdbcTemplate.update(insertQuerySchemeCollect,
+					groupCode, regNo, receiptNo, rDate, amount, modePay, accCode, entRefNo,
+					cancel, systemId, updateTime, Integer.parseInt(userID), bookNo, costId, appVer, tranMode, scId, sno);
+			System.out.println("✅ SCHEMECOLLECT rows inserted: " + rows1);
+
+			// Step 6: Insert SCHEMETRAN
+			int stId = 0; // default ST_ID if you don't have a value
+			int rows2 = secondJdbcTemplate.update(insertQuerySchemeTran,
+					groupCode, regNo, amount, weight, sWeight, xRate, silverRate,
+					receiptNo, rDate, cancel, systemId, Integer.parseInt(installment), empIdInt, remark,
+					entRefNo, cPersonInt, Integer.parseInt(userID), updateTime, bookNo, costId, msnoInt,
+					bonusAmount, bonusWeight, appVer, stId, sno, actualDate,
+					tax, sgst, cgst, igst, insAmount
+			);
+			System.out.println("✅ SCHEMETRAN rows inserted: " + rows2);
+
+			// Step 7: Update counters
+			firstJdbcTemplate.update("UPDATE SOFTCONTROL SET CTLTEXT = ? WHERE CTLID = 'ENTREFNO'", Integer.parseInt(entRefNo) + 1);
+			firstJdbcTemplate.update("UPDATE Company SET StartReceiptNo = ? WHERE StartReceiptNo = ?", Integer.parseInt(receiptNo) + 1, Integer.parseInt(receiptNo));
+
+			System.out.println("=== insertEntry() COMPLETED SUCCESSFULLY ===");
+			return "Success";
+
+		} catch (Exception e) {
+			System.err.println("❌ Error inserting record: " + e.getMessage());
+			e.printStackTrace();
+			return "Error: " + e.getMessage();
+		}
+	}
+
+
+
+
+
+//	public String insertEntry(String groupCode, String regNo, String rDate, String amount, String modePay,
+//							  String accCode, String updateTime, String installment, String userID, String sno) {
+//
+//		System.out.println("=== insertEntry() START ===");
+//		System.out.printf("Params -> groupCode=%s, regNo=%s, rDate=%s, amount=%s, modePay=%s, accCode=%s, userID=%s, sno=%s%n",
+//				groupCode, regNo, rDate, amount, modePay, accCode, userID, sno);
+//
+//		String receiptNoQuery = "SELECT StartReceiptNo FROM Company";
+//		String refNoQuery = "SELECT CTLTEXT FROM SOFTCONTROL WHERE CTLID = 'ENTREFNO'";
+//		String wtCalculate = "SELECT s.WeightLedger FROM SCHEMEMAST sm " +
+//				"LEFT JOIN Scheme s ON s.SchemeId = sm.SCHEMEID " +
+//				"WHERE sm.GROUPCODE = ? AND sm.REGNO = ?";
+//
+//		String insertQuerySchemeCollect = "INSERT INTO SCHEMECOLLECT " +
+//				"(GROUPCODE, REGNO, RECEIPTNO, RDATE, AMOUNT, MODEPAY, ACCODE, ENTREFNO, CANCEL, SYSTEMID, " +
+//				"UPDATETIME, USERID, BOOKNO, COSTID, APPVER, TRANMODE, SC_ID, SNO) " +
+//				"VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+//
+//		String insertQuerySchemeTran = "INSERT INTO SCHEMETRAN " +
+//				"(GROUPCODE, REGNO, AMOUNT, WEIGHT, SWEIGHT, RATE, SRATE, RECEIPTNO, RDATE, CANCEL, " +
+//				"SYSTEMID, INSTALLMENT, EMPID, REMARKS, ENTREFNO, CPERSON, USERID, UPDATETIME, BOOKNO, COSTID, " +
+//				"Msno, BONUSAMount, BonusWeight, APPVER, ST_ID, SNO, ACTUALDATE, TAX, SGST, CGST, IGST, INSAMOUNT) " +
+//				"VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+//
+//		try {
+//			// === Step 1: Fetch Receipt No ===
+//			String receiptNo = firstJdbcTemplate.queryForObject(receiptNoQuery, String.class);
+//
+//			// === Step 2: Fetch ENTREFNO ===
+//			String entRefNo = firstJdbcTemplate.queryForObject(refNoQuery, String.class);
+//
+//			if (receiptNo == null || entRefNo == null) {
+//				return "Error: Missing receipt or ENTREFNO";
+//			}
+//
+//			// === Step 3: Weight Ledger ===
+//			String wtFlag = "N";
+//			try {
+//				List<String> wtList = firstJdbcTemplate.queryForList(wtCalculate, new Object[]{groupCode, regNo}, String.class);
+//				if (!wtList.isEmpty()) wtFlag = wtList.get(0);
+//			} catch (Exception e) {
+//				System.err.println("⚠️ Could not fetch weight ledger: " + e.getMessage());
+//			}
+//
+//			// === Step 4: Fetch gold & silver rates ===
+//			String sql = "SELECT METALID, PURITY, PRATE " +
+//					"FROM RATEMAST " +
+//					"WHERE RATEGROUP = (SELECT MAX(RATEGROUP) FROM RATEMAST) " +
+//					"AND ((METALID = 'G' AND PURITY = '91.60') OR " +
+//					"     (METALID = 'P' AND PURITY = '95.00') OR " +
+//					"     (METALID = 'S' AND PURITY = '91.60'))";
+//
+//			Map<String, Object> rateMap = new HashMap<>();
+//
+//			List<Map<String, Object>> results = fourthJdbcTemplate.query(sql, (rs, rowNum) -> {
+//				Map<String, Object> row = new HashMap<>();
+//				row.put("METALID", rs.getString("METALID"));
+//				row.put("PRATE", rs.getFloat("PRATE"));
+//				return row;
+//			});
+//
+//			for (Map<String, Object> row : results) {
+//				String metalId = (String) row.get("METALID");
+//				float rate = (float) row.get("PRATE");
+//
+//				if ("G".equals(metalId)) {
+//					rateMap.put("Rate", rate); // Gold
+//				} else if ("S".equals(metalId)) {
+//					rateMap.put("SILVERRATE", rate); // Silver
+//				}
+//			}
+//
+//			float xRate = ((Number) rateMap.getOrDefault("Rate", 0)).floatValue();
+//			float silverRate = ((Number) rateMap.getOrDefault("SILVERRATE", 0)).floatValue();
+//
+//			String weight = "0", sWeight = "0";
+//			if ("Y".equalsIgnoreCase(wtFlag)) {
+//				int amt = Integer.parseInt(amount);
+//				weight = String.format("%.3f", amt / xRate);
+//				sWeight = String.format("%.3f", amt / silverRate);
+//			}
+//
+//			System.out.println("Rates -> GoldRate=" + xRate + ", SilverRate=" + silverRate + ", WeightFlag=" + wtFlag);
+//			System.out.println("Calculated weights -> G=" + weight + ", S=" + sWeight);
+//
+//			// === Step 5: Insert SCHEMECOLLECT ===
+//			System.out.println("🟢 Inserting into SCHEMECOLLECT (SNO=" + sno + ")");
+//			int rows1 = secondJdbcTemplate.update(insertQuerySchemeCollect,
+//					groupCode, regNo, receiptNo, rDate, amount, modePay, accCode, entRefNo,
+//					"", "", updateTime, userID, "0", "", "19.12.10.1", "D", entRefNo, sno);
+//			System.out.println("✅ SCHEMECOLLECT rows inserted: " + rows1);
+//
+//			// === Step 6: Insert SCHEMETRAN ===
+//			System.out.println("🟢 Inserting into SCHEMETRAN (SNO=" + sno + ")");
+//			Object[] params = {
+//					groupCode, regNo, amount, weight, sWeight, xRate, silverRate, receiptNo, rDate, "", "", installment,
+//					"1", "", entRefNo, "0", userID, updateTime, "0", "", "0", "0", "0", "19.12.10.1",
+//					entRefNo, sno, " ", 0, 0, 0, 0, 0, null // ✅ added null for parameter 33
+//			};
+//
+//			System.out.println("🔍 SCHEMETRAN Params Count: " + params.length);
+//			int rows2 = secondJdbcTemplate.update(insertQuerySchemeTran, params);
+//			System.out.println("✅ SCHEMETRAN rows inserted: " + rows2);
+//
+//			// === Step 7: Update reference numbers ===
+//			System.out.println("🔄 Updating reference numbers...");
+//			firstJdbcTemplate.update("UPDATE SOFTCONTROL SET CTLTEXT = ? WHERE CTLID = 'ENTREFNO'", Integer.parseInt(entRefNo) + 1);
+//			firstJdbcTemplate.update("UPDATE Company SET StartReceiptNo = ? WHERE StartReceiptNo = ?", Integer.parseInt(receiptNo) + 1, Integer.parseInt(receiptNo));
+//
+//			System.out.println("=== insertEntry() COMPLETED SUCCESSFULLY ===");
+//			return "Success";
+//
+//		} catch (Exception e) {
+//			System.err.println("❌ Error inserting record: " + e.getMessage());
+//			e.printStackTrace();
+//			return "Error: " + e.getMessage();
+//		}
+//	}
+
+
+
+
 
 	public String executeGetSnoScheme(String tableName, String dbName) {
 		SimpleJdbcCall jdbcCall = new SimpleJdbcCall(secondJdbcTemplate)
@@ -305,7 +536,7 @@ public class AccountService {
 		inParams.put("CTLID", "SCHEMETRANCODE"); // @CTLID
 		inParams.put("CHECKDB", dbName); // @CHECKDB
 		inParams.put("CHECKTABLENAME", tableName); // @CHECKTABLENAME
-		inParams.put("COMPANYID", "1"); // @COMPANYID
+		inParams.put("COMPANYID", "BMG"); // @COMPANYID
 
 		// Execute the stored procedure
 		Map<String, Object> outParams = jdbcCall.execute(inParams);

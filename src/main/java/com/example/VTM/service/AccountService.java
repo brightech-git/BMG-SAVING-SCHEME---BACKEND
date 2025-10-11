@@ -42,76 +42,203 @@ public class AccountService {
 	}
 
 
+//	public PPData ppData(int regNo, String groupCode) {
+//		PPData ppData = new PPData();
+//
+//		//PersonalInfo
+//		String sql1 = "SELECT " + "p.PERSONALID, " + "p.PNAME, " + "p.DOORNO, " + "p.ADDRESS1, " + "p.PINCODE, "
+//				+ "p.MOBILE " + "FROM " + "PERSONALINFO AS p " + "LEFT JOIN " + "SCHEMEMAST AS s "
+//				+ "ON s.sno = p.PERSONALID " + "WHERE " + "s.REGNO = ? " + "AND s.GROUPCODE = ?;";
+//		@SuppressWarnings("deprecation")
+//		PersonalInfo personalInfo = firstJdbcTemplate.queryForObject(sql1, new Object[] { regNo, groupCode },
+//				new BeanPropertyRowMapper<>(PersonalInfo.class));
+//
+//		//PaymentHistoryList
+//		String sql2 = "SELECT RECEIPTNO,AMOUNT,INSTALLMENT,UPDATETIME FROM SCHEMETRAN  "
+//				+ "WHERE REGNO = ? AND GROUPCODE = ? " + "ORDER BY INSTALLMENT";
+//		@SuppressWarnings("deprecation")
+//		List<PaymentHistory> paymentHistoryList = secondJdbcTemplate.query(sql2, new Object[] { regNo, groupCode },
+//				new BeanPropertyRowMapper<>(PaymentHistory.class));
+//
+//		//SchemeSummary
+//		String sql3_section1 = "SELECT s.SchemeId,s.schemeName ,s.SchemeSName ,s.Instalment,s.FixedIns,s.WeightLedger, s.weight, s.sum(weight) as totalweight"
+//								+ " from SCHEMEMAST sm   "
+//								+ "left join Scheme s on s.SchemeId =sm.SCHEMEID  "
+//								+ "where sm.GROUPCODE = ? and  sm.REGNO = ? ";
+//		@SuppressWarnings("deprecation")
+//		SchemeSummary schemeSummary = firstJdbcTemplate.queryForObject(sql3_section1, new Object[] { groupCode,regNo },
+//				new BeanPropertyRowMapper<>(SchemeSummary.class));
+//
+//		//SchemaSummaryTransBalance
+//		String sql3_section2 = "SELECT " + "	SUM(AMOUNT) AMTRECD , " + "	COUNT(INSTALLMENT) INSPaid  " + " FROM "
+//				+ "	SCHEMETRAN " + " WHERE " + "	REGNO = ?  " + "	and GROUPCODE = ?  " + " GROUP BY " + "	REGNO, "
+//				+ "	GROUPCODE ";
+//		@SuppressWarnings("deprecation")
+//		SchemaSummaryTransBalance schemaSummaryTransBalance = secondJdbcTemplate.queryForObject(sql3_section2,
+//				new Object[] { regNo, groupCode }, new BeanPropertyRowMapper<>(SchemaSummaryTransBalance.class));
+//
+//		// SchemeClosedSummary
+//		String sql4="SELECT sm.DOCLOSE,sm.BILLNO,u.USERNAME,e.EMPNAME FROM SCHEMEMAST sm "
+//				+ "LEFT JOIN USERMASTER u on u.USERID =sm.USERID "
+//				+ "LEFT JOIN EMPMASTER e on e.EMPID =sm.IEMP "
+//				+ "WHERE GROUPCODE = ? AND REGNO = ?" ;
+//		@SuppressWarnings("deprecation")
+//		SchemeClosedSummary schemeClosedSummary  = firstJdbcTemplate.queryForObject(sql4,
+//				new Object[] {groupCode, regNo  }, new BeanPropertyRowMapper<>(SchemeClosedSummary.class));
+//
+//		//Last Paid Date
+//		String sql5="SELECT MAX(UPDATETIME) FROM SCHEMETRAN "
+//				+ "WHERE REGNO = ? AND GROUPCODE = ? ";
+//		@SuppressWarnings("deprecation")
+//		String lastPaidDate = secondJdbcTemplate.queryForObject(sql5, new Object[]{regNo, groupCode}, String.class);
+//
+//		//Last Paid Date
+//		if(schemeSummary.getFixedIns().equals("Y")) {
+//			String getfixedAmount="SELECT TOP 1 Amount FROM SCHEMETRAN WHERE GROUPCODE= ? AND regno=? ";
+//			@SuppressWarnings("deprecation")
+//			Optional<String> fixedAmount = Optional.ofNullable(secondJdbcTemplate.queryForObject
+//								(getfixedAmount, new Object[]{groupCode ,regNo}, String.class));
+//			if(fixedAmount.equals(null))
+//				ppData.setAmount(null);
+//			else
+//				ppData.setAmount(fixedAmount.get());
+//		}
+//
+//		schemeSummary.setSchemaSummaryTransBalance(schemaSummaryTransBalance);
+//		ppData.setPersonalInfo(personalInfo);
+//		ppData.setSchemeClosedSummary(schemeClosedSummary);
+//		ppData.setPaymentHistoryList(paymentHistoryList);
+//		ppData.setSchemeSummary(schemeSummary);
+//		ppData.setLastPaidDate(lastPaidDate);
+//		return ppData;
+//	}
+
+
 	public PPData ppData(int regNo, String groupCode) {
 		PPData ppData = new PPData();
 
-		//PersonalInfo
-		String sql1 = "SELECT " + "p.PERSONALID, " + "p.PNAME, " + "p.DOORNO, " + "p.ADDRESS1, " + "p.PINCODE, "
-				+ "p.MOBILE " + "FROM " + "PERSONALINFO AS p " + "LEFT JOIN " + "SCHEMEMAST AS s "
-				+ "ON s.sno = p.PERSONALID " + "WHERE " + "s.REGNO = ? " + "AND s.GROUPCODE = ?;";
-		@SuppressWarnings("deprecation")
-		PersonalInfo personalInfo = firstJdbcTemplate.queryForObject(sql1, new Object[] { regNo, groupCode },
-				new BeanPropertyRowMapper<>(PersonalInfo.class));
+		// ------------------- PersonalInfo -------------------
+		String sqlPersonal = """
+        SELECT p.PERSONALID, p.PNAME, p.DOORNO, p.ADDRESS1, p.PINCODE, p.MOBILE
+        FROM PERSONALINFO AS p
+        LEFT JOIN SCHEMEMAST AS s ON s.SNO = p.PERSONALID
+        WHERE s.REGNO = ? AND s.GROUPCODE = ?
+    """;
+		PersonalInfo personalInfo = firstJdbcTemplate.queryForObject(
+				sqlPersonal,
+				new Object[]{regNo, groupCode},
+				new BeanPropertyRowMapper<>(PersonalInfo.class)
+		);
+		ppData.setPersonalInfo(personalInfo);
 
-		//PaymentHistoryList
-		String sql2 = "SELECT RECEIPTNO,AMOUNT,INSTALLMENT,UPDATETIME FROM SCHEMETRAN  "
-				+ "WHERE REGNO = ? AND GROUPCODE = ? " + "ORDER BY INSTALLMENT";
-		@SuppressWarnings("deprecation")
-		List<PaymentHistory> paymentHistoryList = secondJdbcTemplate.query(sql2, new Object[] { regNo, groupCode },
-				new BeanPropertyRowMapper<>(PaymentHistory.class));
+		// ------------------- PaymentHistoryList -------------------
+		String sqlPayments = """
+        SELECT RECEIPTNO, AMOUNT, INSTALLMENT, UPDATETIME, WEIGHT
+        FROM SCHEMETRAN
+        WHERE REGNO = ? AND GROUPCODE = ?
+        ORDER BY INSTALLMENT
+    """;
+		List<PaymentHistory> paymentHistoryList = secondJdbcTemplate.query(
+				sqlPayments,
+				new Object[]{regNo, groupCode},
+				new BeanPropertyRowMapper<>(PaymentHistory.class)
+		);
+		ppData.setPaymentHistoryList(paymentHistoryList);
 
-		//SchemeSummary
-		String sql3_section1 = "SELECT s.SchemeId,s.schemeName ,s.SchemeSName ,s.Instalment,s.FixedIns,s.WeightLedger"
-								+ " from SCHEMEMAST sm   "
-								+ "left join Scheme s on s.SchemeId =sm.SCHEMEID  "
-								+ "where sm.GROUPCODE = ? and  sm.REGNO = ? ";
-		@SuppressWarnings("deprecation")
-		SchemeSummary schemeSummary = firstJdbcTemplate.queryForObject(sql3_section1, new Object[] { groupCode,regNo },
-				new BeanPropertyRowMapper<>(SchemeSummary.class));
+		// ------------------- SchemeSummary -------------------
+		String sqlScheme = """
+        SELECT s.SchemeId, s.SchemeName, s.SchemeSName, s.Instalment, s.FixedIns, s.WeightLedger
+        FROM SCHEMEMAST sm
+        LEFT JOIN Scheme s ON s.SchemeId = sm.SCHEMEID
+        WHERE sm.GROUPCODE = ? AND sm.REGNO = ?
+    """;
+		SchemeSummary schemeSummary = firstJdbcTemplate.queryForObject(
+				sqlScheme,
+				new Object[]{groupCode, regNo},
+				new BeanPropertyRowMapper<>(SchemeSummary.class)
+		);
 
-		//SchemaSummaryTransBalance
-		String sql3_section2 = "SELECT " + "	SUM(AMOUNT) AMTRECD , " + "	COUNT(INSTALLMENT) INSPaid  " + " FROM "
-				+ "	SCHEMETRAN " + " WHERE " + "	REGNO = ?  " + "	and GROUPCODE = ?  " + " GROUP BY " + "	REGNO, "
-				+ "	GROUPCODE ";
-		@SuppressWarnings("deprecation")
-		SchemaSummaryTransBalance schemaSummaryTransBalance = secondJdbcTemplate.queryForObject(sql3_section2,
-				new Object[] { regNo, groupCode }, new BeanPropertyRowMapper<>(SchemaSummaryTransBalance.class));
+		// ------------------- Total Weight and Last Weight -------------------
+		String sqlTotalWeight = "SELECT COALESCE(SUM(WEIGHT),0) FROM SCHEMETRAN WHERE REGNO = ? AND GROUPCODE = ?";
+		String totalWeight = secondJdbcTemplate.queryForObject(sqlTotalWeight, new Object[]{regNo, groupCode}, String.class);
+		schemeSummary.setTotalWeight(totalWeight);
 
-		// SchemeClosedSummary
-		String sql4="SELECT sm.DOCLOSE,sm.BILLNO,u.USERNAME,e.EMPNAME FROM SCHEMEMAST sm "
-				+ "LEFT JOIN USERMASTER u on u.USERID =sm.USERID "
-				+ "LEFT JOIN EMPMASTER e on e.EMPID =sm.IEMP "
-				+ "WHERE GROUPCODE = ? AND REGNO = ?" ;
-		@SuppressWarnings("deprecation")
-		SchemeClosedSummary schemeClosedSummary  = firstJdbcTemplate.queryForObject(sql4,
-				new Object[] {groupCode, regNo  }, new BeanPropertyRowMapper<>(SchemeClosedSummary.class));
+		String sqlLastWeight = "SELECT TOP 1 WEIGHT FROM SCHEMETRAN WHERE REGNO = ? AND GROUPCODE = ? ORDER BY UPDATETIME DESC";
+		String lastWeight = null;
+		try {
+			lastWeight = secondJdbcTemplate.queryForObject(sqlLastWeight, new Object[]{regNo, groupCode}, String.class);
+		} catch (EmptyResultDataAccessException e) {
+			lastWeight = null;
+		}
+		schemeSummary.setLastWeight(lastWeight);
 
-		//Last Paid Date
-		String sql5="SELECT MAX(UPDATETIME) FROM SCHEMETRAN "
-				+ "WHERE REGNO = ? AND GROUPCODE = ? ";
-		@SuppressWarnings("deprecation")
-		String lastPaidDate = secondJdbcTemplate.queryForObject(sql5, new Object[]{regNo, groupCode}, String.class);
+		// ------------------- SchemaSummaryTransBalance -------------------
+		String sqlTransBalance = """
+        SELECT SUM(AMOUNT) AS amtrecd, COUNT(INSTALLMENT) AS insPaid
+        FROM SCHEMETRAN
+        WHERE REGNO = ? AND GROUPCODE = ?
+        GROUP BY REGNO, GROUPCODE
+    """;
+		SchemaSummaryTransBalance schemaSummaryTransBalance = null;
+		try {
+			schemaSummaryTransBalance = secondJdbcTemplate.queryForObject(
+					sqlTransBalance,
+					new Object[]{regNo, groupCode},
+					new BeanPropertyRowMapper<>(SchemaSummaryTransBalance.class)
+			);
+		} catch (EmptyResultDataAccessException e) {
+			schemaSummaryTransBalance = new SchemaSummaryTransBalance(); // default empty
+		}
+		schemeSummary.setSchemaSummaryTransBalance(schemaSummaryTransBalance);
 
-		//Last Paid Date			
-		if(schemeSummary.getFixedIns().equals("Y")) {
-			String getfixedAmount="SELECT TOP 1 Amount FROM SCHEMETRAN WHERE GROUPCODE= ? AND regno=? ";
-			@SuppressWarnings("deprecation")
-			Optional<String> fixedAmount = Optional.ofNullable(secondJdbcTemplate.queryForObject
-								(getfixedAmount, new Object[]{groupCode ,regNo}, String.class));
-			if(fixedAmount.equals(null))
-				ppData.setAmount(null);
-			else
-				ppData.setAmount(fixedAmount.get());
+		// ------------------- SchemeClosedSummary -------------------
+		String sqlClosed = """
+        SELECT sm.DOCLOSE AS doClose, sm.BILLNO AS billNo, u.USERNAME AS userName, e.EMPNAME AS empName
+        FROM SCHEMEMAST sm
+        LEFT JOIN USERMASTER u ON u.USERID = sm.USERID
+        LEFT JOIN EMPMASTER e ON e.EMPID = sm.IEMP
+        WHERE GROUPCODE = ? AND REGNO = ?
+    """;
+		SchemeClosedSummary schemeClosedSummary = firstJdbcTemplate.queryForObject(
+				sqlClosed,
+				new Object[]{groupCode, regNo},
+				new BeanPropertyRowMapper<>(SchemeClosedSummary.class)
+		);
+
+		// ------------------- Last Paid Date -------------------
+		String sqlLastPaid = "SELECT MAX(UPDATETIME) FROM SCHEMETRAN WHERE REGNO = ? AND GROUPCODE = ?";
+		String lastPaidDate = null;
+		try {
+			lastPaidDate = secondJdbcTemplate.queryForObject(sqlLastPaid, new Object[]{regNo, groupCode}, String.class);
+		} catch (EmptyResultDataAccessException e) {
+			lastPaidDate = null;
 		}
 
-		schemeSummary.setSchemaSummaryTransBalance(schemaSummaryTransBalance);
+		// ------------------- Fixed Installment Amount -------------------
+		String amount = null;
+		if ("Y".equalsIgnoreCase(schemeSummary.getFixedIns())) {
+			String sqlFixedAmount = "SELECT TOP 1 AMOUNT FROM SCHEMETRAN WHERE REGNO = ? AND GROUPCODE = ? ORDER BY UPDATETIME DESC";
+			try {
+				amount = secondJdbcTemplate.queryForObject(sqlFixedAmount, new Object[]{regNo, groupCode}, String.class);
+			} catch (EmptyResultDataAccessException e) {
+				amount = null;
+			}
+		}
+
+		// ------------------- Set All PPData Fields -------------------
+		ppData.setRegNo(regNo);
+		ppData.setGroupCode(groupCode);
+  // optional: fetch from SCHEMEMAST
 		ppData.setPersonalInfo(personalInfo);
+		ppData.setSchemeSummary(schemeSummary);
 		ppData.setSchemeClosedSummary(schemeClosedSummary);
 		ppData.setPaymentHistoryList(paymentHistoryList);
-		ppData.setSchemeSummary(schemeSummary);
 		ppData.setLastPaidDate(lastPaidDate);
+		ppData.setAmount(amount);
+
 		return ppData;
 	}
+
 
 	public List<PhoneSearchRegNoGroupCode> getRegNoGroupCodeByPhoneNo(String phoneNo) {
 		String sql = "SELECT p.PNAME, sm.REGNO, sm.GROUPCODE, " +

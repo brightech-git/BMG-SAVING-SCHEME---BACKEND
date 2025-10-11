@@ -1,55 +1,28 @@
 package com.example.VTM.model.PhoneSearch;
 
-import org.springframework.format.annotation.DateTimeFormat;
-
 import java.time.LocalDateTime;
-import java.util.Date;
 
 public class PhoneSearchRegNoGroupCode {
-	
-	private String PNAME;
-	private Integer REGNO;
-	private String GROUPCODE;
-	private LocalDateTime MaturityDate;
-	private LocalDateTime JOINDATE;
 
-	public String getPNAME() {
-		return PNAME;
-	}
+	private String pName;
+	private Integer regNo;
+	private String groupCode;
+	private LocalDateTime maturityDate;
+	private LocalDateTime joinDate;
 
-	public void setPNAME(String PNAME) {
-		this.PNAME = PNAME;
-	}
+	// Getters and Setters
+	public String getPName() { return pName; }
+	public void setPName(String pName) { this.pName = pName; }
 
-	public Integer getREGNO() {
-		return REGNO;
-	}
+	public Integer getRegNo() { return regNo; }
+	public void setRegNo(Integer regNo) { this.regNo = regNo; }
 
-	public void setREGNO(Integer REGNO) {
-		this.REGNO = REGNO;
-	}
+	public String getGroupCode() { return groupCode; }
+	public void setGroupCode(String groupCode) { this.groupCode = groupCode; }
 
-	public String getGROUPCODE() {
-		return GROUPCODE;
-	}
+	public LocalDateTime getMaturityDate() { return maturityDate; }
+	public void setMaturityDate(LocalDateTime maturityDate) { this.maturityDate = maturityDate; }
 
-	public void setGROUPCODE(String GROUPCODE) {
-		this.GROUPCODE = GROUPCODE;
-	}
-
-	public LocalDateTime getMaturityDate() {
-		return MaturityDate;
-	}
-
-	public void setMaturityDate(LocalDateTime maturityDate) {
-		MaturityDate = maturityDate;
-	}
-
-	public LocalDateTime getJOINDATE() {
-		return JOINDATE;
-	}
-
-	public void setJOINDATE(LocalDateTime JOINDATE) {
-		this.JOINDATE = JOINDATE;
-	}
+	public LocalDateTime getJoinDate() { return joinDate; }
+	public void setJoinDate(LocalDateTime joinDate) { this.joinDate = joinDate; }
 }

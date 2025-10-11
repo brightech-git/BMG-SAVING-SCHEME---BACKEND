@@ -45,9 +45,12 @@ public class NewMemberService{
 	}
 
 
-	public List<Map<String,Object>> getScheme(){
-		return 	customQueryUtils.customQueryBuilderForListOfObject("SELECT SchemeId,schemeName, SchemeSName FROM " +
-				" Scheme WHERE ACTIVE ='y' ORDER BY SchemeId",firstJdbcTemplate);
+	public List<Map<String, Object>> getScheme() {
+		return customQueryUtils.customQueryBuilderForListOfObject(
+				"SELECT SchemeId,schemeName, SchemeSName, WeightLedger, SCHEMETYPE, ACTIVE, FixedIns, Instalment, ADDNEWMEMBER, GroupCodeForAllAmount, MetalType " +
+						"FROM SCHEME WHERE ACTIVE = 'y' ORDER BY SchemeId",
+				firstJdbcTemplate
+		);
 	}
 
 	public List<Map<String,Object>> getSchemeAmount(String schemeId){

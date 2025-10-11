@@ -132,6 +132,58 @@ public class AccountService {
 	}
 
 
+	public List<PPData> getFullDetailsByPhoneNo(String phoneNo) {
+
+		String sql = """
+        SELECT 
+            p.PNAME AS pName, 
+            sm.REGNO AS regNo, 
+            sm.GROUPCODE AS groupCode, 
+            DATEADD(MONTH, s.Instalment, sm.JOINDATE) AS maturityDate, 
+            sm.JOINDATE AS joinDate
+        FROM PERSONALINFO p
+        LEFT JOIN SCHEMEMAST sm ON sm.SNO = p.PERSONALID
+        LEFT JOIN SCHEME s ON s.SchemeId = sm.SCHEMEID
+        WHERE p.MOBILE = ? 
+          AND (sm.DOCLOSE IS NULL OR sm.DOCLOSE = '')
+    """;
+
+		List<PhoneSearchRegNoGroupCode> phoneSearchList = firstJdbcTemplate.query(
+				sql,
+				new BeanPropertyRowMapper<>(PhoneSearchRegNoGroupCode.class),
+				phoneNo
+		);
+
+		List<PPData> resultList = new ArrayList<>();
+
+		for (PhoneSearchRegNoGroupCode item : phoneSearchList) {
+			if (item.getRegNo() != null && item.getGroupCode() != null) {
+				PPData data;
+				try {
+					data = ppData(item.getRegNo(), item.getGroupCode());
+				} catch (EmptyResultDataAccessException e) {
+					continue; // Skip if no data found
+				}
+
+				// Set phone search info directly
+				data.setRegNo(item.getRegNo());
+				data.setGroupCode(item.getGroupCode());
+				data.setPName(item.getPName());
+				data.setMaturityDate(item.getMaturityDate());
+				data.setJoinDate(item.getJoinDate());
+
+				resultList.add(data);
+			}
+		}
+
+		return resultList;
+	}
+
+
+
+
+
+
 
 	public Map<String, Object> getRateOFGoldAndSliver() {
 		String sql = "  SELECT METALID, PURITY, PRATE \n" +

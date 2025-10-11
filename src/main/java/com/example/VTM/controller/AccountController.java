@@ -35,6 +35,11 @@ public class AccountController {
     	return accountService.getRegNoGroupCodeByPhoneNo(phoneNo);
     }
 
+    @GetMapping("/phone_details")
+    public List<PPData> getFullDetailsByPhoneNo(@RequestParam("phoneNo") String phoneNo) {
+        return accountService.getFullDetailsByPhoneNo(phoneNo);
+    }
+
 //    @PostMapping("/insert")
 //    public String insertEntry(@RequestBody SchemeCollectInsert data ) {
 //    	return accountService.insertEntry(data.getGroupCode(), data.getRegNo(), data.getRDate(), data.getAmount(),

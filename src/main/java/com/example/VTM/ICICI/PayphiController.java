@@ -57,15 +57,14 @@ public class PayphiController {
         this.paymentKitService = paymentKitService;
     }
 
+    /**
+     * Initiate online or cash payment
+     */
     @PostMapping("/initiate-sale")
     public ResponseEntity<?> initiateSale(@RequestHeader("Authorization") String authHeader,
                                           @RequestBody InitiateSaleRequest request) {
         try {
             PaymentKitConfig config = paymentKitService.getActiveConfig();
-            if (!config.isActive()) {
-                return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE)
-                        .body("Payment kit configuration is not active");
-            }
 
             // Extract contact and email from JWT token
             String token = authHeader.replace("Bearer ", "").trim();
@@ -77,14 +76,75 @@ public class PayphiController {
             String contact = claims.get("contact", String.class);
             String email = claims.get("email", String.class);
 
-            request.setCustomerEmailID(email);
             request.setCustomerMobileNo(contact);
+            request.setCustomerEmailID(email);
+
+            // Generate order_id if not passed
+            if (!StringUtils.hasText(request.getMerchantTxnNo())) {
+                request.setMerchantTxnNo("ORD-" + UUID.randomUUID().toString().substring(0, 10).toUpperCase());
+            }
+
+            // === Cash Payment Handling ===
+            if ("CASH".equalsIgnoreCase(request.getPayType())) {
+
+                if (!StringUtils.hasText(request.getName())) {
+                    return ResponseEntity.badRequest().body("Name is required for cash payment");
+                }
+
+                String status = "PENDING";
+
+                String insertSql = "INSERT INTO AppPayment_record " +
+                        "(order_id, name, contact, REGNO, GROUPCODE, amount, status, payment_mode, created_at, updated_at) " +
+                        "VALUES (?, ?, ?, ?, ?, ?, ?, ?, SYSDATETIMEOFFSET(), SYSDATETIMEOFFSET())";
+
+                String regNo = request.getAddlParam1();     // frontend must pass
+                String groupCode = request.getAddlParam2(); // frontend must pass
+
+                jdbcTemplate.update(insertSql,
+                        request.getMerchantTxnNo(),
+                        request.getName(),
+                        request.getCustomerMobileNo(),
+                        regNo,
+                        groupCode,
+                        request.getAmount(),
+                        status,
+                        "CASH"
+                );
+
+                Map<String, Object> resp = new HashMap<>();
+                resp.put("orderId", request.getMerchantTxnNo());
+                resp.put("status", status);
+                resp.put("message", "Cash payment recorded offline");
+                return ResponseEntity.ok(resp);
+            }
+
+            // === Online Payment Handling ===
+            if (!config.isActive()) {
+                return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE)
+                        .body("Payment kit configuration is not active for online payments");
+            }
+
             request.setMerchantId(config.getMerchantId());
             request.setReturnURL(config.getReturnUrl());
 
             if (!StringUtils.hasText(request.getTxnDate())) {
                 String txnDate = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMddHHmmss"));
                 request.setTxnDate(txnDate);
+            }
+
+            // Map human-readable payType to PayPhi code
+            switch (request.getPayType().toUpperCase()) {
+                case "ONLINE":
+                    request.setPayType("0");
+                    break;
+                case "CARD":
+                    request.setPayType("1");
+                    break;
+                case "UPI":
+                    request.setPayType("2");
+                    break;
+                default:
+                    return ResponseEntity.badRequest().body("Invalid payType for online payment");
             }
 
             // Generate secure hash
@@ -97,6 +157,7 @@ public class PayphiController {
                     "customer_email_id, customer_mobile_no, transaction_type, txn_date, return_url, " +
                     "addl_param1, addl_param2, secure_hash) " +
                     "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+
             jdbcTemplate.update(insertSql,
                     request.getMerchantId(),
                     request.getMerchantTxnNo(),
@@ -110,7 +171,8 @@ public class PayphiController {
                     request.getReturnURL(),
                     request.getAddlParam1(),
                     request.getAddlParam2(),
-                    request.getSecureHash());
+                    request.getSecureHash()
+            );
 
             // Call PayPhi API
             HttpHeaders headers = new HttpHeaders();
@@ -120,7 +182,8 @@ public class PayphiController {
             ResponseEntity<String> response = restTemplate.postForEntity(
                     config.getInitiateSaleUrl(),
                     entity,
-                    String.class);
+                    String.class
+            );
 
             // Save response
             String saveResponseSql = "INSERT INTO initiate_sale_response " +
@@ -128,13 +191,10 @@ public class PayphiController {
             jdbcTemplate.update(saveResponseSql,
                     request.getMerchantTxnNo(),
                     response.getStatusCodeValue(),
-                    response.getBody());
+                    response.getBody()
+            );
 
-            if (response.getStatusCode().is2xxSuccessful()) {
-                return ResponseEntity.ok(response.getBody());
-            } else {
-                return ResponseEntity.status(response.getStatusCode()).body(response.getBody());
-            }
+            return ResponseEntity.status(response.getStatusCode()).body(response.getBody());
 
         } catch (Exception e) {
             log.error("Error initiating sale", e);
@@ -146,7 +206,9 @@ public class PayphiController {
 
 
 
-@PostMapping("/redirect-url")
+
+
+    @PostMapping("/redirect-url")
 public ResponseEntity<String> getRedirectUrl(@RequestBody Map<String, String> body) {
     String tranCtx = body.get("tranCtx");
 
@@ -247,6 +309,42 @@ public ResponseEntity<String> getRedirectUrl(@RequestBody Map<String, String> bo
             result.put("orderStatus", "ERROR");
             result.put("message", e.getMessage());
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(result);
+        }
+    }
+
+
+    @PostMapping("/complete-cash-payment")
+    public ResponseEntity<?> completeCashPayment(@RequestBody Map<String, String> body) {
+        try {
+            String orderId = body.get("orderId");
+            if (!StringUtils.hasText(orderId)) {
+                return ResponseEntity.badRequest().body("orderId is required");
+            }
+
+            // Check if order exists and is pending
+            String selectSql = "SELECT * FROM AppPayment_record WHERE order_id = ? AND status = 'PENDING'";
+            List<Map<String, Object>> orders = jdbcTemplate.queryForList(selectSql, orderId);
+
+            if (orders.isEmpty()) {
+                return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                        .body("Cash payment order not found or already completed");
+            }
+
+            // Update status to PAID
+            String updateSql = "UPDATE AppPayment_record SET status = 'PAID', updated_at = SYSDATETIMEOFFSET() WHERE order_id = ?";
+            jdbcTemplate.update(updateSql, orderId);
+
+            Map<String, Object> resp = new HashMap<>();
+            resp.put("orderId", orderId);
+            resp.put("status", "PAID");
+            resp.put("message", "Cash payment marked as completed");
+
+            return ResponseEntity.ok(resp);
+
+        } catch (Exception e) {
+            log.error("Error completing cash payment", e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body("Error completing cash payment: " + e.getMessage());
         }
     }
 

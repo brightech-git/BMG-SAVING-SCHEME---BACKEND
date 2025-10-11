@@ -205,12 +205,12 @@ public class PaymentService {
                     customer.getGROUPCODE(),
                     paymentRequest.getAmount(),
 
-                    "CREATED",
+                    "PENDING",
                     LocalDateTime.now()
             );
 
             response.put("order_id", orderId);
-            response.put("status", "CREATED");
+            response.put("status", "PENDING");
             response.put("message", "Order placed successfully");
 
         } catch (Exception e) {

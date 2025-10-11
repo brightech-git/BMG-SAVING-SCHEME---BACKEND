@@ -19,4 +19,7 @@ public class InitiateSaleRequest {
     private String addlParam1;
     private String addlParam2;
     private String secureHash;
+
+    // Add name for cash payment only
+    private String name;
 }
